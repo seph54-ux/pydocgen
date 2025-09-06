@@ -1,7 +1,10 @@
-from flask import Flask, render_template, send_file, redirect, url_for, flash
+from flask import Flask, render_template, send_file, redirect, url_for, flash, request
 from docx import Document
 import os
 from datetime import datetime
+import tempfile
+import sys
+from io import StringIO
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -14,63 +17,102 @@ def after_request(response):
     response.headers["Expires"] = "0"
     return response
 
-def create_scope_and_limitations_doc():
-    """Create the Word document and return the file path"""
-    # Create a new Document
-    doc = Document()
-
-    # Title
-    doc.add_heading('Scope and Limitations', level=1)
-
-    # Scope Section
-    doc.add_heading('Scope', level=2)
-    doc.add_paragraph(
-        "This study focuses on the design, development, and deployment of a Smart Coin-Operated Water Dispenser powered by IoT technology. "
-        "The scope of the project includes:"
-    )
-    doc.add_paragraph(
-        "1. Automated Dispensing Mechanism – Development of a coin-based activation system that allows users to select between normal temperature water and chilled water, with accurate dispensing volume per coin inserted.\n"
-        "2. IoT Integration – Implementation of a centralized admin dashboard that displays real-time data such as water level, chilled water temperature, and coin box capacity. The dashboard also provides push notifications for system alerts (low water, full coin box, or temperature malfunction).\n"
-        "3. User Interface – Provision of a simple and intuitive interface (buttons and display screen) to guide users throughout the process of coin insertion, selection, and water dispensing.\n"
-        "4. Safety and Maintenance Features – Real-time monitoring and alert system for operational reliability, including warnings for low water supply and a nearly full coin box, supported by sensors like ultrasonic sensors, thermistors, and load cells.\n"
-        "5. Testing and Validation – System calibration for dispensing accuracy, reliability tests of components (ESP32, solenoid valves, pumps, sensors), and evaluation of performance based on user satisfaction, efficiency, and cost-effectiveness."
-    )
-
-    # Limitations Section
-    doc.add_heading('Limitations', level=2)
-    doc.add_paragraph(
-        "Despite its capabilities, the study is bounded by the following limitations:"
-    )
-    doc.add_paragraph(
-        "1. Coin-Based Payment Only – The system accepts physical coins as the only form of payment. Other payment modes (e.g., QR code, RFID, or mobile payment) are not included in this prototype.\n"
-        "2. Single-Source Input – The machine is designed to operate with a single main water jug/reservoir at a time. It does not automatically refill from external pipelines or other water sources.\n"
-        "3. Chilled Water Limitation – Cooling is limited to the use of a chilled storage container, monitored by a thermistor. Advanced cooling systems (e.g., compressor-based refrigeration) are not part of this study.\n"
-        "4. Capacity Constraints – The dispensing limit is defined per coin transaction (e.g., up to ₱10 worth of water per dispense). Larger dispensing volumes or bulk transactions are outside the scope.\n"
-        "5. Operational Range of Sensors – The accuracy of water level (ultrasonic sensor), coin box weight (load cell), and temperature (thermistor) may vary under real-world conditions such as vibration, uneven coin stacking, or fluctuating room temperature.\n"
-        "6. Network Dependency – The IoT dashboard requires a stable internet connection for real-time monitoring. In areas with poor connectivity, remote access and notifications may be delayed or unavailable.\n"
-        "7. Prototype Stage – The project is developed as a prototype for academic purposes. Long-term durability, large-scale deployment, and commercial-grade optimization (e.g., energy efficiency, tamper-proof design, water filtration integration) are not fully addressed in this study."
-    )
-
-    # Create static directory if it doesn't exist
-    if not os.path.exists('static'):
-        os.makedirs('static')
+def execute_python_code_and_create_doc(python_code):
+    """Execute user's Python code and return the file path of the generated document"""
+    try:
+        # Create static directory if it doesn't exist
+        if not os.path.exists('static'):
+            os.makedirs('static')
+        
+        # Create a controlled environment for executing the code
+        namespace = {
+            'Document': Document,
+            'datetime': datetime,
+            'os': os
+        }
+        
+        # Execute the user's Python code
+        exec(python_code, namespace)
+        
+        # Check if 'doc' variable exists in the namespace
+        if 'doc' not in namespace:
+            raise ValueError("Your script must create a variable named 'doc' that contains the Document object.")
+        
+        doc = namespace['doc']
+        
+        # Verify it's a Document object by checking if it has the expected methods
+        if not hasattr(doc, 'save') or not hasattr(doc, 'add_heading'):
+            raise ValueError("The 'doc' variable must be a Document object from python-docx.")
+        
+        # Save document to static folder so it can be served
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"Generated_Document_{timestamp}.docx"
+        file_path = os.path.join('static', filename)
+        doc.save(file_path)
+        
+        return file_path
     
-    # Save document to static folder so it can be served
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"Scope_and_Limitations_{timestamp}.docx"
-    file_path = os.path.join('static', filename)
-    doc.save(file_path)
-    
-    return file_path
+    except Exception as e:
+        raise Exception(f"Error executing your Python code: {str(e)}")
+
+def get_default_code():
+    """Return the default Python code for the Scope and Limitations document"""
+    return """from docx import Document
+
+# Create a new Document
+doc = Document()
+
+# Title
+doc.add_heading('Scope and Limitations', level=1)
+
+# Scope Section
+doc.add_heading('Scope', level=2)
+doc.add_paragraph(
+    "This study focuses on the design, development, and deployment of a Smart Coin-Operated Water Dispenser powered by IoT technology. "
+    "The scope of the project includes:"
+)
+doc.add_paragraph(
+    "1. Automated Dispensing Mechanism – Development of a coin-based activation system that allows users to select between normal temperature water and chilled water, with accurate dispensing volume per coin inserted.\\n"
+    "2. IoT Integration – Implementation of a centralized admin dashboard that displays real-time data such as water level, chilled water temperature, and coin box capacity. The dashboard also provides push notifications for system alerts (low water, full coin box, or temperature malfunction).\\n"
+    "3. User Interface – Provision of a simple and intuitive interface (buttons and display screen) to guide users throughout the process of coin insertion, selection, and water dispensing.\\n"
+    "4. Safety and Maintenance Features – Real-time monitoring and alert system for operational reliability, including warnings for low water supply and a nearly full coin box, supported by sensors like ultrasonic sensors, thermistors, and load cells.\\n"
+    "5. Testing and Validation – System calibration for dispensing accuracy, reliability tests of components (ESP32, solenoid valves, pumps, sensors), and evaluation of performance based on user satisfaction, efficiency, and cost-effectiveness."
+)
+
+# Limitations Section
+doc.add_heading('Limitations', level=2)
+doc.add_paragraph(
+    "Despite its capabilities, the study is bounded by the following limitations:"
+)
+doc.add_paragraph(
+    "1. Coin-Based Payment Only – The system accepts physical coins as the only form of payment. Other payment modes (e.g., QR code, RFID, or mobile payment) are not included in this prototype.\\n"
+    "2. Single-Source Input – The machine is designed to operate with a single main water jug/reservoir at a time. It does not automatically refill from external pipelines or other water sources.\\n"
+    "3. Chilled Water Limitation – Cooling is limited to the use of a chilled storage container, monitored by a thermistor. Advanced cooling systems (e.g., compressor-based refrigeration) are not part of this study.\\n"
+    "4. Capacity Constraints – The dispensing limit is defined per coin transaction (e.g., up to ₱10 worth of water per dispense). Larger dispensing volumes or bulk transactions are outside the scope.\\n"
+    "5. Operational Range of Sensors – The accuracy of water level (ultrasonic sensor), coin box weight (load cell), and temperature (thermistor) may vary under real-world conditions such as vibration, uneven coin stacking, or fluctuating room temperature.\\n"
+    "6. Network Dependency – The IoT dashboard requires a stable internet connection for real-time monitoring. In areas with poor connectivity, remote access and notifications may be delayed or unavailable.\\n"
+    "7. Prototype Stage – The project is developed as a prototype for academic purposes. Long-term durability, large-scale deployment, and commercial-grade optimization (e.g., energy efficiency, tamper-proof design, water filtration integration) are not fully addressed in this study."
+)"""
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    default_code = get_default_code()
+    return render_template('index.html', default_code=default_code)
 
-@app.route('/generate')
+@app.route('/generate', methods=['GET', 'POST'])
 def generate_document():
+    if request.method == 'GET':
+        # Redirect GET requests to the main page
+        return redirect(url_for('index'))
+    
     try:
-        file_path = create_scope_and_limitations_doc()
+        python_code = request.form.get('python_code', '').strip()
+        
+        if not python_code:
+            flash('Please provide Python code to generate a document.', 'error')
+            return redirect(url_for('index'))
+        
+        file_path = execute_python_code_and_create_doc(python_code)
         filename = os.path.basename(file_path)
         flash(f'Document "{filename}" generated successfully!', 'success')
         return redirect(url_for('index', download_file=filename))

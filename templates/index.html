@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .description {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            border-left: 4px solid #007bff;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .generate-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        .generate-btn:hover {
+            background-color: #0056b3;
+        }
+        .download-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        .download-btn:hover {
+            background-color: #1e7e34;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #c3e6cb;
+            margin-bottom: 10px;
+        }
+        .flash-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #f1b0b7;
+            margin-bottom: 10px;
+        }
+        .download-section {
+            background-color: #e8f5e8;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Scope and Limitations Document Generator</h1>
+        
+        <div class="description">
+            <h3>About This Tool</h3>
+            <p>This tool generates a comprehensive Word document containing the scope and limitations for a Smart Coin-Operated Water Dispenser IoT project. The document includes detailed information about:</p>
+            <ul>
+                <li><strong>Project Scope:</strong> Automated dispensing, IoT integration, user interface, safety features, and testing</li>
+                <li><strong>Project Limitations:</strong> Payment constraints, capacity limits, sensor accuracy, and prototype boundaries</li>
+            </ul>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="button-container">
+            <a href="{{ url_for('generate_document') }}" class="generate-btn">
+                🔄 Generate Document
+            </a>
+        </div>
+
+        <!-- Download section (only shown if there's a download file parameter) -->
+        {% if request.args.get('download_file') %}
+            <div class="download-section">
+                <h3>✅ Document Ready!</h3>
+                <p>Your document has been generated successfully. Click the button below to download it:</p>
+                <a href="{{ url_for('download_file', filename=request.args.get('download_file')) }}" class="download-btn">
+                    ⬇️ Download {{ request.args.get('download_file') }}
+                </a>
+            </div>
+        {% endif %}
+
+        <div class="description">
+            <h3>How to Use</h3>
+            <ol>
+                <li>Click the "Generate Document" button above</li>
+                <li>The system will create a new Word document with a timestamp</li>
+                <li>Once generated, a download link will appear</li>
+                <li>Click the download link to save the document to your computer</li>
+            </ol>
+            <p><strong>Note:</strong> Each generated document includes a timestamp to ensure unique filenames.</p>
+        </div>
+    </div>
+</body>
+</html>

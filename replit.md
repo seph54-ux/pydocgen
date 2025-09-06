@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a Flask-based web application that generates Word documents for academic research purposes. The application specifically creates "Scope and Limitations" documents for a Smart Coin-Operated Water Dispenser IoT project. Users can generate and download pre-formatted Word documents through a simple web interface.
+A Flask-based web application that generates Microsoft Word documents programmatically. The system allows users to execute Python code that creates documents using the python-docx library, with automatic file generation and download capabilities. Designed primarily for academic research document creation with a focus on simplicity and user-friendly document generation.
 
 ## User Preferences
 
@@ -11,41 +11,46 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Backend Architecture
-- **Framework**: Flask web framework for Python
-- **Document Generation**: Uses python-docx library to create Microsoft Word documents programmatically
-- **Template Engine**: Jinja2 templating (built into Flask) for HTML rendering
-- **Session Management**: Flask's built-in session handling with secret key configuration
+- **Framework**: Flask web framework chosen for its simplicity and rapid development capabilities
+- **Document Generation Engine**: python-docx library for programmatic Word document creation, allowing full control over document structure and formatting
+- **Code Execution System**: Controlled namespace execution environment that safely runs user-provided Python code while maintaining security boundaries
+- **File Management**: Temporary document storage in static directory with timestamp-based naming to prevent conflicts
+- **Session Management**: Flask's built-in session handling with secret key configuration for user state management
 
 ### Frontend Architecture
-- **Technology**: Server-side rendered HTML with embedded CSS
-- **Styling**: Inline CSS with responsive design principles
-- **User Interface**: Single-page application with minimal JavaScript requirements
-- **Layout**: Centered container design with modern styling (shadows, rounded corners, hover effects)
+- **Rendering Strategy**: Server-side rendered HTML using Jinja2 templating engine
+- **Styling Approach**: Embedded CSS with neumorphism design principles, featuring gradient animations and shadow effects
+- **User Interface Pattern**: Single-page application with form-based interaction for code input and document generation
+- **Responsive Design**: Mobile-first approach with flexible container layouts
 
-### File Management
-- **Document Storage**: Temporary file generation in memory or local filesystem
-- **Download Mechanism**: Direct file serving through Flask's send_file functionality
-- **Caching Strategy**: Aggressive no-cache headers to prevent browser caching issues
+### Security and File Handling
+- **Code Execution Security**: Controlled namespace execution with limited available modules and functions
+- **File Serving**: Direct Flask file serving with automatic cleanup and secure path handling
+- **Caching Strategy**: Aggressive no-cache headers implementation to prevent browser caching of generated documents
+- **Session Security**: Secret key configuration for Flask session encryption
 
-### Security Considerations
-- **Secret Key**: Configured for Flask session security (placeholder implementation)
-- **HTTP Headers**: Security headers implemented to prevent caching of sensitive content
-- **File Handling**: Secure file generation and serving without persistent storage
+### Document Generation Workflow
+- **Input Processing**: User-provided Python code execution in sandboxed environment
+- **Document Validation**: Verification that executed code produces valid Document objects
+- **File Creation**: Timestamp-based file naming and storage in accessible static directory
+- **Download Mechanism**: Automatic file serving through Flask's send_file functionality
 
 ## External Dependencies
 
-### Python Libraries
-- **Flask**: Web framework for handling HTTP requests and responses
-- **python-docx**: Library for creating and manipulating Microsoft Word documents
-- **datetime**: Built-in Python module for timestamp handling
-- **os**: Built-in Python module for operating system interface
+### Core Python Libraries
+- **Flask**: Web application framework for HTTP request handling and response generation
+- **python-docx**: Document creation and manipulation library for Microsoft Word format
+- **datetime**: Built-in module for timestamp generation and date handling
+- **tempfile**: File system utilities for temporary file management
+- **os**: Operating system interface for directory and file operations
 
-### Frontend Dependencies
-- **No external CSS frameworks**: Uses vanilla CSS for styling
-- **No JavaScript libraries**: Minimal client-side functionality
-- **Web fonts**: Relies on system fonts (Arial, sans-serif fallback)
+### Frontend Technologies
+- **Vanilla CSS**: Custom styling without external frameworks, implementing neumorphism design patterns
+- **Inter Font Family**: Modern typography with system font fallbacks
+- **CSS Animations**: Gradient animations and hover effects for enhanced user experience
+- **HTML5**: Semantic markup with accessibility considerations
 
-### Runtime Requirements
-- **Python 3.x**: Required for running the Flask application
-- **Web browser**: Any modern browser for accessing the application
-- **Microsoft Word compatibility**: Generated documents use .docx format
+### Runtime Environment
+- **Python 3.x**: Required interpreter version for Flask and python-docx compatibility
+- **Web Browser**: Any modern browser supporting HTML5 and CSS3 features
+- **File System Access**: Local directory creation and file writing permissions required

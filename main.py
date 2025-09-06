@@ -96,8 +96,7 @@ doc.add_paragraph(
 
 @app.route('/')
 def index():
-    default_code = get_default_code()
-    return render_template('index.html', default_code=default_code)
+    return render_template('index.html')
 
 @app.route('/generate', methods=['GET', 'POST'])
 def generate_document():

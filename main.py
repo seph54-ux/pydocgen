@@ -27,7 +27,7 @@ def execute_python_code_and_create_document(python_code):
         # Create static directory if it doesn't exist
         if not os.path.exists('static'):
             os.makedirs('static')
-        
+
         # Create a controlled environment for executing the code
         namespace = {
             'Document': Document,
@@ -38,15 +38,15 @@ def execute_python_code_and_create_document(python_code):
             'letter': letter,
             'FPDF': FPDF
         }
-        
+
         # Execute the user's Python code
         exec(python_code, namespace)
-        
+
         # Check for different types of document objects
         doc_object = None
         file_extension = None
         filename_prefix = "Generated_Document"
-        
+
         # Check for Word document
         if 'doc' in namespace:
             doc_object = namespace['doc']
@@ -54,30 +54,30 @@ def execute_python_code_and_create_document(python_code):
                 file_extension = '.docx'
             else:
                 raise ValueError("The 'doc' variable must be a Document object from python-docx.")
-        
+
         # Check for PDF objects
         elif 'pdf' in namespace:
             doc_object = namespace['pdf']
             file_extension = '.pdf'
-            
+
         # Check for matplotlib figure
         elif 'fig' in namespace or plt.get_fignums():
             doc_object = namespace.get('fig', plt.gcf())
             file_extension = '.pdf'
             filename_prefix = "Generated_Plot"
-            
+
         else:
             raise ValueError("Your script must create one of these variables:\n" +
                            "- 'doc' for Word documents (python-docx)\n" +
                            "- 'pdf' for PDF documents (reportlab, fpdf2)\n" +
                            "- 'fig' for matplotlib plots\n" +
                            "Or use matplotlib's plt.figure() and plt.show()")
-        
+
         # Generate filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{filename_prefix}_{timestamp}{file_extension}"
         file_path = os.path.join('static', filename)
-        
+
         # Save the document based on type
         if file_extension == '.docx':
             doc_object.save(file_path)
@@ -99,9 +99,9 @@ def execute_python_code_and_create_document(python_code):
                 # Try matplotlib's plt.savefig as fallback
                 plt.savefig(file_path, format='pdf')
                 plt.close('all')
-        
+
         return file_path
-    
+
     except Exception as e:
         # Clean up any open matplotlib figures
         plt.close('all')
@@ -120,16 +120,16 @@ def handle_reportlab_save(namespace, target_path, python_code):
             'letter': letter,
             'FPDF': FPDF
         }
-        
+
         # Modify the code to use the target path
         modified_code = python_code.replace('canvas(', f'canvas("{target_path}", ')
         exec(modified_code, temp_namespace)
-        
+
         if 'pdf' in temp_namespace:
             pdf_obj = temp_namespace['pdf']
             if hasattr(pdf_obj, 'save'):
                 pdf_obj.save()
-        
+
         return target_path
     except:
         # Fallback: create a simple canvas with the target path
@@ -187,14 +187,14 @@ def generate_document():
     if request.method == 'GET':
         # Redirect GET requests to the main page
         return redirect(url_for('index'))
-    
+
     try:
         python_code = request.form.get('python_code', '').strip()
-        
+
         if not python_code:
             flash('Please provide Python code to generate a document.', 'error')
             return redirect(url_for('index'))
-        
+
         file_path = execute_python_code_and_create_document(python_code)
         filename = os.path.basename(file_path)
         flash(f'Document "{filename}" generated successfully!', 'success')

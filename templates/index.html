@@ -272,12 +272,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>📄 Personal Document Generator</h1>
+        <h1>📄 Personal Document & PDF Generator</h1>
         
         <div class="description">
             <h3>About This Tool</h3>
-            <p>This is a personal document generator. Paste any Python script that creates a Word document using the python-docx library, and generate a downloadable document. The script should create a document and return the document object.</p>
-            <p><strong>Requirements:</strong> Your script should use the variable name <code>doc</code> for the Document object that will be saved.</p>
+            <p>This is a personal document and PDF generator. Paste any Python script that creates documents using supported libraries, and generate a downloadable file. Supports Word documents, PDFs, and plots.</p>
+            <p><strong>Supported formats:</strong></p>
+            <ul>
+                <li><strong>Word Documents:</strong> Use <code>doc</code> variable with python-docx library</li>
+                <li><strong>PDF Documents:</strong> Use <code>pdf</code> variable with reportlab or fpdf2 libraries</li>
+                <li><strong>Charts/Plots:</strong> Use <code>fig</code> variable or matplotlib's plt functions</li>
+            </ul>
         </div>
 
         <!-- Flash Messages -->
@@ -293,17 +298,34 @@
 
         <form method="POST" action="{{ url_for('generate_document') }}" class="form-section">
             <h3>📝 Paste Your Python Script</h3>
-            <div class="example-code">Example script:
+            <div class="example-code">Example Word Document:
 from docx import Document
 
-# Create a new Document
 doc = Document()
 doc.add_heading('My Custom Document', level=1)
-doc.add_paragraph('This is a custom paragraph created from my script.')
-doc.add_heading('Section 1', level=2)
-doc.add_paragraph('Content for section 1.')
+doc.add_paragraph('This is a custom paragraph.')
+
+Example PDF with FPDF:
+from fpdf import FPDF
+
+pdf = FPDF()
+pdf.add_page()
+pdf.set_font('Arial', 'B', 16)
+pdf.cell(40, 10, 'Hello PDF World!')
+
+Example Chart/Plot:
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()
+ax.plot([1, 2, 3, 4], [1, 4, 2, 3])
+ax.set_title('Sample Chart')
             </div>
-            <textarea name="python_code" class="code-input" placeholder="Paste your Python script here that creates a Word document using python-docx library. Make sure your script creates a variable called 'doc' that contains the Document object." required>{{ request.form.get('python_code', '') }}</textarea>
+            <textarea name="python_code" class="code-input" placeholder="Paste your Python script here. Supported formats:
+• Word docs: create 'doc' variable (python-docx)
+• PDF files: create 'pdf' variable (reportlab/fpdf2) 
+• Charts: create 'fig' variable or use plt functions (matplotlib)
+
+Example: doc = Document() or pdf = FPDF() or fig, ax = plt.subplots()" required>{{ request.form.get('python_code', '') }}</textarea>
             <div class="button-container">
                 <button type="submit" class="generate-btn">
                     🔄 Generate Document
@@ -326,12 +348,17 @@ doc.add_paragraph('Content for section 1.')
             <h3>How to Use</h3>
             <ol>
                 <li>Paste your Python script in the text area above</li>
-                <li>Make sure your script creates a Document object named <code>doc</code></li>
+                <li>Make sure your script creates the appropriate variable (<code>doc</code>, <code>pdf</code>, or <code>fig</code>)</li>
                 <li>Click the "Generate Document" button</li>
                 <li>Once generated, a download link will appear</li>
                 <li>Click the download link to save the document to your computer</li>
             </ol>
-            <p><strong>Important:</strong> Your script must use <code>from docx import Document</code> and create a variable called <code>doc</code> that contains your document.</p>
+            <p><strong>Important:</strong> Your script must create one of these variables:</p>
+            <ul>
+                <li><code>doc</code> - for Word documents (python-docx)</li>
+                <li><code>pdf</code> - for PDF files (reportlab, fpdf2)</li> 
+                <li><code>fig</code> - for charts/plots (matplotlib)</li>
+            </ul>
         </div>
 
         <!-- Footer -->

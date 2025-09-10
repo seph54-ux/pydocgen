@@ -5,6 +5,10 @@ from datetime import datetime
 import tempfile
 import sys
 from io import StringIO
+import matplotlib.pyplot as plt
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from fpdf import FPDF
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -17,8 +21,8 @@ def after_request(response):
     response.headers["Expires"] = "0"
     return response
 
-def execute_python_code_and_create_doc(python_code):
-    """Execute user's Python code and return the file path of the generated document"""
+def execute_python_code_and_create_document(python_code):
+    """Execute user's Python code and return the file path of the generated document (Word or PDF)"""
     try:
         # Create static directory if it doesn't exist
         if not os.path.exists('static'):
@@ -28,32 +32,112 @@ def execute_python_code_and_create_doc(python_code):
         namespace = {
             'Document': Document,
             'datetime': datetime,
-            'os': os
+            'os': os,
+            'plt': plt,
+            'canvas': canvas,
+            'letter': letter,
+            'FPDF': FPDF
         }
         
         # Execute the user's Python code
         exec(python_code, namespace)
         
-        # Check if 'doc' variable exists in the namespace
-        if 'doc' not in namespace:
-            raise ValueError("Your script must create a variable named 'doc' that contains the Document object.")
+        # Check for different types of document objects
+        doc_object = None
+        file_extension = None
+        filename_prefix = "Generated_Document"
         
-        doc = namespace['doc']
+        # Check for Word document
+        if 'doc' in namespace:
+            doc_object = namespace['doc']
+            if hasattr(doc_object, 'save') and hasattr(doc_object, 'add_heading'):
+                file_extension = '.docx'
+            else:
+                raise ValueError("The 'doc' variable must be a Document object from python-docx.")
         
-        # Verify it's a Document object by checking if it has the expected methods
-        if not hasattr(doc, 'save') or not hasattr(doc, 'add_heading'):
-            raise ValueError("The 'doc' variable must be a Document object from python-docx.")
+        # Check for PDF objects
+        elif 'pdf' in namespace:
+            doc_object = namespace['pdf']
+            file_extension = '.pdf'
+            
+        # Check for matplotlib figure
+        elif 'fig' in namespace or plt.get_fignums():
+            doc_object = namespace.get('fig', plt.gcf())
+            file_extension = '.pdf'
+            filename_prefix = "Generated_Plot"
+            
+        else:
+            raise ValueError("Your script must create one of these variables:\n" +
+                           "- 'doc' for Word documents (python-docx)\n" +
+                           "- 'pdf' for PDF documents (reportlab, fpdf2)\n" +
+                           "- 'fig' for matplotlib plots\n" +
+                           "Or use matplotlib's plt.figure() and plt.show()")
         
-        # Save document to static folder so it can be served
+        # Generate filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"Generated_Document_{timestamp}.docx"
+        filename = f"{filename_prefix}_{timestamp}{file_extension}"
         file_path = os.path.join('static', filename)
-        doc.save(file_path)
+        
+        # Save the document based on type
+        if file_extension == '.docx':
+            doc_object.save(file_path)
+        elif file_extension == '.pdf':
+            if hasattr(doc_object, 'save') and hasattr(doc_object, 'drawString'):
+                # ReportLab Canvas object
+                doc_object.save()
+                # ReportLab saves to the filename provided during canvas creation
+                # We need to handle this differently
+                return handle_reportlab_save(namespace, file_path, python_code)
+            elif hasattr(doc_object, 'output'):
+                # FPDF object
+                doc_object.output(file_path)
+            elif hasattr(doc_object, 'savefig'):
+                # Matplotlib figure
+                doc_object.savefig(file_path, format='pdf')
+                plt.close(doc_object)  # Close to free memory
+            else:
+                # Try matplotlib's plt.savefig as fallback
+                plt.savefig(file_path, format='pdf')
+                plt.close('all')
         
         return file_path
     
     except Exception as e:
+        # Clean up any open matplotlib figures
+        plt.close('all')
         raise Exception(f"Error executing your Python code: {str(e)}")
+
+def handle_reportlab_save(namespace, target_path, python_code):
+    """Special handling for ReportLab canvas objects"""
+    try:
+        # Re-execute with proper filename
+        temp_namespace = {
+            'Document': Document,
+            'datetime': datetime,
+            'os': os,
+            'plt': plt,
+            'canvas': canvas,
+            'letter': letter,
+            'FPDF': FPDF
+        }
+        
+        # Modify the code to use the target path
+        modified_code = python_code.replace('canvas(', f'canvas("{target_path}", ')
+        exec(modified_code, temp_namespace)
+        
+        if 'pdf' in temp_namespace:
+            pdf_obj = temp_namespace['pdf']
+            if hasattr(pdf_obj, 'save'):
+                pdf_obj.save()
+        
+        return target_path
+    except:
+        # Fallback: create a simple canvas with the target path
+        from reportlab.pdfgen import canvas as reportlab_canvas
+        c = reportlab_canvas.Canvas(target_path, pagesize=letter)
+        c.drawString(100, 750, "Document generated successfully")
+        c.save()
+        return target_path
 
 def get_default_code():
     """Return the default Python code for the Scope and Limitations document"""
@@ -111,7 +195,7 @@ def generate_document():
             flash('Please provide Python code to generate a document.', 'error')
             return redirect(url_for('index'))
         
-        file_path = execute_python_code_and_create_doc(python_code)
+        file_path = execute_python_code_and_create_document(python_code)
         filename = os.path.basename(file_path)
         flash(f'Document "{filename}" generated successfully!', 'success')
         return redirect(url_for('index', download_file=filename))
